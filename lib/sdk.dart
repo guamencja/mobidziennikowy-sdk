@@ -72,3 +72,65 @@ Future<Map<String, dynamic>> firstSignIn(
 
   return payload;
 }
+
+enum Page {
+  Login("login");
+
+  const Page(this.page);
+  final String page;
+}
+
+Future<Map<String, dynamic>> _sync(
+  String syncUrl,
+  String login,
+  String email,
+  String password,
+  Page page
+) async {
+  final url = Uri.parse(syncUrl);
+
+  final deviceInfo = buildDeviceInfo();
+
+  final body = {
+    "login": login,
+    "email": email,
+    "haslo_hash": "",
+    "page": page.page,
+    "haslo": password,
+    "device": deviceInfo,
+  };
+
+  final response = await http.post(
+    url,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: body,
+  );
+
+  // handle the response
+  if (response.statusCode != 200) {
+    throw Exception('Failed to sign in. Status code: ${response.statusCode}');
+  }
+
+  final payload = jsonDecode(response.body);
+
+  if (payload.containsKey("error")) {
+    final error = payload['error'];
+    final type = error['type'];
+    final message = error['message'];
+
+    throw AuthenticationException(type, message);
+  }
+
+  return payload;
+}
+
+Future<Map<String, dynamic>> firstSync(
+  String syncUrl,
+  String login,
+  String email,
+  String password,
+) async {
+  return _sync(syncUrl, login, email, password, Page.Login);
+}
